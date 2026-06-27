@@ -1,33 +1,66 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
+from openai import OpenAI
+import os
 import requests
 
 app = Flask(__name__)
 
-TELEGRAM_BOT_TOKEN = '7269300718:AAHYByBEUEjE9ev_Wb8rVjAMAx6OMAFFiGc'
-TELEGRAM_CHAT_ID = '-1002587354739  # ✅ Updated Chat ID from your link
+client = OpenAI(api_key=os.getenv("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"))
 
-@app.route('/alert-receive', methods=['POST'])
-def alert_receive():
-    data = request.json
-    message = f"""
-📢 Chartink Alert Received 📉
+TELEGRAM_BOT_TOKEN = os.getenv("d67a420ec78124c965e5f7b4b6c378c621f1710d3e04460d")
+TELEGRAM_CHAT_ID = os.getenv("-1003738638265")
 
-🔹 Symbol: {data.get('symbol')}
-🔹 Open: {data.get('open')}
-🔹 High: {data.get('high')}
-🔹 Low: {data.get('low')}
-🔹 Close: {data.get('close')}
-🔹 VWAP: {data.get('vwap')}
-🔹 Volume: {data.get('volume')}
-"""
+def send_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
-        'chat_id': TELEGRAM_CHAT_ID,
-        'text': message,
-        'parse_mode': 'Markdown'
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message
     }
-    requests.post(url, data=payload)
-    return 'Alert sent to Telegram', 200
-git add app.py
-git commit -m "Updated Chat ID to -1002587354739
-git push origin main
+    return requests.post(url, json=payload, timeout=15)
+
+def get_ai_analysis(signal_data):
+    prompt = f"""
+You are a crypto trading assistant.
+Analyze this live alert in 4 short lines.
+
+Symbol: {signal_data.get('symbol')}
+Side: {signal_data.get('side')}
+Entry: {signal_data.get('entry')}
+Target: {signal_data.get('target')}
+SL: {signal_data.get('sl')}
+Price: {signal_data.get('price')}
+Volume: {signal_data.get('volume')}
+RSI: {signal_data.get('rsi')}
+VWAP: {signal_data.get('vwap')}
+
+Return:
+1. Bias
+2. Risk
+3. Confirmation
+4. One-line action note
+"""
+    response = client.responses.create(
+        model="gpt-5.5",
+        input=prompt
+    )
+    return response.output_text
+
+@app.route("/alert-receive", methods=["POST"])
+def alert_receive():
+    data = request.get_json(force=True)
+
+    ai_text = get_ai_analysis(data)
+
+    message = f"""📢 Live Trade Alert
+
+Symbol: {data.get('symbol')}
+Side: {data.get('side')}
+Entry: {data.get('entry')}
+Target: {data.get('target')}
+SL: {data.get('sl')}
+
+AI Analysis:
+{ai_text}
+"""
+    send_telegram(message)
+    return jsonify({"status": "ok"}), 200
