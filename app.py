@@ -4,8 +4,8 @@ import requests
 app = Flask(__name__)
 
 # 🔑 Replace with your actual bot token & chat ID
-TELEGRAM_BOT_TOKEN = '7269300718:AAHYByBEUEjE9ev_Wb8rVjAMAx6OMAFFiGc'
-TELEGRAM_CHAT_ID = '-1002587354739'
+TELEGRAM_BOT_TOKEN = '8879566560:AAG1hRQP8HRziipOvSwyMDKK4IFj-LOIv5Q'
+TELEGRAM_CHAT_ID = '-1003738638265'
 
 @app.route('/alert-receive', methods=['POST'])
 def alert_receive():
